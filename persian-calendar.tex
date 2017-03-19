@@ -1,0 +1,134 @@
+\documentclass[tikz]{standalone}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ORIGINAL COMMENT:
+%%%%%% Folding + calendar example from the PGF manual.
+%%%%%%
+%%%%%% Author: Till Tantau
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Sample modified for Persian Calendar. Note that the calendar package doesn't support Hijri calendar (AFAIK), therefore we have to use some hacks to have Persian months.
+% The hack is as follows:
+% Farvardin 1396 starts on Tuesday, so we shall find a month and a year that has 31 days and starts on Tuesday.
+% Ordibehesht 1396 starts on Friday, so we shall find a month and a year that has 31 days and starts on Friday.
+% Khordad 1396 starts on Monday, so we shall find a month and a year that has 31 days and starts on Monday.
+% Tir 1396 starts on Thursday, so we shall find a month and a year that has 31 days and starts on Thursday.
+% Mordad 1396 starts on Sunday, so we shall find a month and a year that has 31 days and starts on Sunday.
+% Shahrivar 1396 starts on Wednesday, so we shall find a month and a year that has 31 days and starts on Wednesday.
+% Mehr 1396 starts on Saturday, so we shall find a month and a year that has 30 days and starts on Saturday.
+% Aban 1396 starts on Monday, so we shall find a month and a year that has 30 days and starts on Monday.
+% Azar 1396 starts on Wednesday, so we shall find a month and a year that has 30 days and starts on Wednesday.
+% Dey 1396 starts on Friday, so we shall find a month and a year that has 30 days and starts on Friday.
+% Bahman 1396 starts on Sunday, so we shall find a month and a year that has 30 days and starts on Sunday.
+% Esfand 1396 starts on Tuesday, so we shall find a month and a year that has 29 days and starts on Tuesday. This is pretty hard, since the only month with 29 days is February on leap years, do we have a leap year in which February starts on Tuesday? Let's find out!
+% To find the months run `months-hack.py`.
+% This is the output of that program:
+% Farvardin ->      2013-01-01
+% Ordibehesht ->    2016-01-01
+% Khordad ->        2007-01-01
+% Tir ->            2015-01-01
+% Mordad ->         2012-01-01
+% Shahrivar ->      2014-01-01
+% Mehr ->           2006-04-01
+% Aban ->           2013-04-01
+% Azar ->           2015-04-01
+% Dey ->            2016-04-01
+% Bahman ->         2012-04-01
+% Esfand ->         2000-02-01
+\usepackage{amsmath}
+\usepackage{fontspec}
+\usepackage{xepersian}
+\settextfont[Ligatures=TeX]{XB Niloofar}
+\setdigitfont{XB Niloofar}
+\usepackage{tikz}
+\usetikzlibrary{calendar,folding,positioning}
+
+% from this answer on SE: http://tex.stackexchange.com/a/348754
+\makeatletter
+\tikzstyle{week list saturday}=[
+% Note that we cannot extend from week list,
+% the execute before day scope is cumulative
+execute before day scope={%
+  \ifdate{day of month=1}{\ifdate{equals=\pgfcalendarbeginiso}{}{
+      % On first of month, except when first date in calendar.
+      \pgfmathsetlength{\pgf@y}{\tikz@lib@cal@month@yshift}%
+      \pgftransformyshift{-\pgf@y}
+    }}{}%
+},
+execute at begin day scope={%
+  % Because for TikZ Monday is 0 and Sunday is 6,
+  % we can't directly use \pgfcalendercurrentweekday,
+  % but instead we define \c@pgf@counta (basically) as:
+  % (\pgfcalendercurrentweekday + 2) % 7
+  \pgfmathsetlength\pgf@x{\tikz@lib@cal@xshift}%
+  \ifnum\pgfcalendarcurrentweekday=5
+  \c@pgf@counta=0
+  \else
+  \c@pgf@counta=\pgfcalendarcurrentweekday
+  \advance\c@pgf@counta by 2
+  \ifnum\c@pgf@counta=8
+  \c@pgf@counta=1
+  \fi
+  \fi
+  \pgf@x=\c@pgf@counta\pgf@x
+  % Shift to the right position for the day.
+  \pgftransformxshift{\pgf@x}
+},
+execute after day scope={
+  % Week is done, shift to the next line.
+  \ifdate{Friday}{
+    \pgfmathsetlength{\pgf@y}{\tikz@lib@cal@yshift}%
+    \pgftransformyshift{-\pgf@y}
+  }{}%
+},
+% This should be defined, glancing from the source code.
+tikz@lib@cal@width=7
+]
+
+% from this answer on SE: http://tex.stackexchange.com/a/10199
+\tikzoption{day headings}{\tikzstyle{day heading}=[#1]}
+\tikzstyle{day heading}=[]
+\tikzstyle{day letter headings}=[
+    execute before day scope={ \ifdate{day of month=1}{%
+      \pgfmathsetlength{\pgf@ya}{\tikz@lib@cal@yshift}%
+      \pgfmathsetlength\pgf@xa{\tikz@lib@cal@xshift}%
+      \pgftransformyshift{-\pgf@ya}
+      \foreach \d/\l in {0/ش,1/ی,2/د,3/س,4/چ,5/پ,6/ج} {
+        \pgf@xa=\d\pgf@xa%
+        % \pgftransformrotate{-90}
+        \pgftransformxshift{\pgf@xa}%
+        \pgftransformyshift{1.3\pgf@ya}%
+        \node[every day,day heading]{\l};%
+      } 
+    }{}%
+  }%
+]
+
+\makeatother
+
+\begin{document}
+    \scriptsize
+    \begin{tikzpicture}[transform shape,
+        every calendar/.style={
+            at={(-8ex,4ex)},
+            week list saturday,
+            day headings=orange,
+            day letter headings,
+            if={(Friday) [red]}
+        }]
+    \tikzfoldingdodecahedron[
+        folding line length=2.5cm,
+        face 1={ \calendar [dates=2013-01-01 to 2013-01-last]; \node at (0,10ex) {فروردین};}, % Farvardin
+        face 2={ \calendar [dates=2016-01-01 to 2016-01-last]; \node at (0,10ex) {اردیبهشت};}, % Ordibehesht
+        face 3={ \calendar [dates=2007-01-01 to 2007-01-last]; \node at (0,10ex) {خرداد};}, % Khordad
+        face 4={ \calendar [dates=2015-01-01 to 2015-01-last]; \node at (0,10ex) {تیر};}, % Tir
+        face 5={ \calendar [dates=2012-01-01 to 2012-01-last]; \node at (0,10ex) {مرداد};}, % Mordad
+        face 6={ \calendar [dates=2014-01-01 to 2014-01-last]; \node at (0,10ex) {شهریور};}, % Shahrivar
+        face 7={ \calendar [dates=2006-04-01 to 2006-04-last]; \node at (0,10ex) {مهر};}, % Mehr
+        face 8={ \calendar [dates=2013-04-01 to 2013-04-last]; \node at (0,10ex) {آبان};}, % Aban
+        face 9={ \calendar [dates=2015-04-01 to 2015-04-last]; \node at (0,10ex) {آذر};}, % Azar
+        face 10={\calendar [dates=2016-04-01 to 2016-04-last]; \node at (0,10ex) {دی};}, % Dey
+        face 11={\calendar [dates=2012-04-01 to 2012-04-last]; \node at (0,10ex) {بهمن};}, % Bahman
+        face 12={\calendar [dates=2000-02-01 to 2000-02-last]; \node at (0,10ex) {اسفند};} % Esfand
+    ];
+    \node at (-6cm, -7cm) {Erfan Noury};
+    \end{tikzpicture}
+\end{document}
